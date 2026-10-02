@@ -139,6 +139,8 @@ func EmbedIndex(dir string, client *Client, keep func(index.Record) bool) (Sidec
 			pending = append(pending, r)
 		}
 	}
+	const flushEvery = 50
+	batches := 0
 	for len(pending) > 0 {
 		n := len(pending)
 		if n > 32 {
@@ -162,6 +164,13 @@ func EmbedIndex(dir string, client *Client, keep func(index.Record) bool) (Sidec
 			old.Vectors = append(old.Vectors, Vector{Offset: pending[i].Offset, Key: pending[i].Record.Key, Values: values})
 		}
 		pending = pending[n:]
+		batches++
+		if batches%flushEvery == 0 {
+			old.Model, old.Generation, old.Covered = client.Model, gen, len(recs)
+			if err := write(dir, old); err != nil {
+				return Sidecar{}, err
+			}
+		}
 	}
 	old.Model, old.Generation, old.Covered = client.Model, gen, len(recs)
 	if err := write(dir, old); err != nil {
