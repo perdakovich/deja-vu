@@ -139,12 +139,11 @@ func EmbedIndex(dir string, client *Client, keep func(index.Record) bool) (Sidec
 			pending = append(pending, r)
 		}
 	}
-	const flushEvery = 50
 	batches := 0
 	for len(pending) > 0 {
 		n := len(pending)
-		if n > 32 {
-			n = 32
+		if n > embedBatch {
+			n = embedBatch
 		}
 		texts := make([]string, n)
 		for i := range pending[:n] {
@@ -165,8 +164,10 @@ func EmbedIndex(dir string, client *Client, keep func(index.Record) bool) (Sidec
 		}
 		pending = pending[n:]
 		batches++
-		if batches%flushEvery == 0 {
-			old.Model, old.Generation, old.Covered = client.Model, gen, len(recs)
+		if batches%checkpointEvery == 0 {
+			// Covered is what the sidecar holds so far: doctor reads it as
+			// the share embedded, and the next run embeds only the rest.
+			old.Model, old.Generation, old.Covered = client.Model, gen, len(old.Vectors)
 			if err := write(dir, old); err != nil {
 				return Sidecar{}, err
 			}
@@ -178,6 +179,11 @@ func EmbedIndex(dir string, client *Client, keep func(index.Record) bool) (Sidec
 	}
 	return old, nil
 }
+
+// embedBatch is how many texts go in one request; checkpointEvery is how many
+// requests pass between writes of the sidecar, so a run killed partway keeps
+// what it embedded.
+var embedBatch, checkpointEvery = 32, 50
 
 func truncate(s string) string {
 	const limit = 2000
