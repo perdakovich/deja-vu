@@ -527,8 +527,10 @@ signal. Both degrade quietly, which is why the report names them.
 without anyone asking, one row per harness deja can wire. `state` is `wired`,
 `stale` (deja's file or entry is there and no longer calls the hook, which is
 how a dead integration looks), `missing` (no file, or a client config such as
-Kimi's `config.toml` or Qwen's `settings.json` with no deja hook in it), or
-`plugin` (the harness carries its own).
+Kimi's `config.toml` or Qwen's `settings.json` with no deja hook in it),
+`plugin` (the harness carries its own), or `installed` (the `kiro` row: deja's
+agent is there and `chat.defaultAgent` is not `deja`, so it runs only in a chat
+started with `--agent deja`).
 The `aider` row is `stale` when the context file is there and `~/.aider.conf.yml`
 has no `read:` entry for it, and `broken` when the entry is there and the file
 is not, which makes aider print an error on every start.
@@ -567,7 +569,9 @@ directory) doctor runs in. For Reasonix, `switched_off` means deja's plugin pack
 record in `plugin-packages.json`, which is what `reasonix plugin disable deja`
 leaves. The `deepseek` row carries `plugin_missing` when
 `cordis.patch.yml` names a deja plugin file dsh cannot find, which keeps dsh
-from starting at all.
+from starting at all. The `pi` row is `no-adapter`, with the fix in `note`,
+when `mcp.json` declares deja and pi's packages do not include
+pi-mcp-adapter, the only thing in pi that reads that file.
 `cherrystudio` is read from the app's own database: `wired`
 with that database as `path` when one of its servers runs `deja mcp`, and
 `disabled` with the database as `path` when deja's server is there with its
