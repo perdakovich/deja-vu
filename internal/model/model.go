@@ -70,6 +70,7 @@ type Session struct {
 	// the session holds no user turn (#692). Surfaces that print titles in the
 	// place of the reader's own question need to say so (#1100).
 	AgentTitle bool `json:"agent_title,omitempty"`
+	Subagent   bool `json:"subagent,omitempty"`
 	// ProjectFromDir marks a Project that is only the directory the transcript
 	// was started from, with no files of the session's own to say otherwise.
 	// An appended tail with a few turns and no file activity says nothing about

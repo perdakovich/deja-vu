@@ -69,6 +69,7 @@ type Options struct {
 	From  string
 	Since time.Duration
 	Limit int
+	IncludeSubagents bool
 	// Total and Capped travel from RunDetailed to Print so the JSON envelope
 	// can report how many sessions matched before the cap, not merely how many
 	// survived it. Counting the survivors measures the cap.

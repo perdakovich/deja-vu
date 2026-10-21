@@ -3230,6 +3230,8 @@ func parseSearch(args []string) (search.Options, error) {
 			o.All = true
 		case "--no-embed":
 			o.NoEmbed = true
+		case "--subagents", "--include-subagents":
+			o.IncludeSubagents = true
 		case "--harness", "--project", "--since", "--role", "--limit", "--session":
 			if i+1 >= len(args) {
 				return o, fmt.Errorf("%s needs value", a)

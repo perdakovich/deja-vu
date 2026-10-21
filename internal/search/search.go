@@ -245,6 +245,9 @@ func runScored(ss []model.Session, o Options) ([]Hit, error) {
 		if !query.ProjectAnyMatches(s.Project, s.From, o.ProjectWants()) {
 			continue
 		}
+		if !o.IncludeSubagents && (s.Kind == "subagent" || s.Subagent) {
+			continue
+		}
 		// By the id prefix a hit prints, and by the id a session was synced
 		// under, so "find the session, then search inside it" can use the id
 		// from the first step whichever machine it came from (#1321, #1316).
