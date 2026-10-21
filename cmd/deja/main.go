@@ -2703,7 +2703,7 @@ func checkHarness(name *string) error {
 // help text prints plus "tool-output", the stored form "tool" is an alias for —
 // both reach tool records, so both must be accepted.
 var knownRoles = []string{
-	"user", "assistant", "tool", sources.RoleToolOutput,
+	"user", "assistant", "dialogue", "tool", sources.RoleToolOutput,
 	sources.RoleFiles, sources.RoleCommand, sources.RoleEdit, sources.RoleSummary,
 }
 

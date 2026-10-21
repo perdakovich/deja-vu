@@ -819,3 +819,18 @@ func TestBetweenEqualMatchesTheRecentOneLeads(t *testing.T) {
 		t.Fatalf("age stopped counting: %#v", hits)
 	}
 }
+
+func TestSearchRoleFilterAcceptsDialogue(t *testing.T) {
+	if !RoleMatches("user", "dialogue") {
+		t.Errorf("expected user to match dialogue")
+	}
+	if !RoleMatches("assistant", "dialogue") {
+		t.Errorf("expected assistant to match dialogue")
+	}
+	if RoleMatches("tool-output", "dialogue") {
+		t.Errorf("expected tool-output NOT to match dialogue")
+	}
+	if RoleMatches("command", "dialogue") {
+		t.Errorf("expected command NOT to match dialogue")
+	}
+}

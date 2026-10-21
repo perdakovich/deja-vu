@@ -3273,6 +3273,9 @@ func roleMatches(stored, want string) bool {
 	if stored == want {
 		return true
 	}
+	if want == "dialogue" {
+		return stored == "user" || stored == "assistant"
+	}
 	return want == "tool" && stored == roleToolOutput
 }
 
