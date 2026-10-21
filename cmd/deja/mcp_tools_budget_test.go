@@ -25,9 +25,14 @@ import (
 // 3,196 chars became 1,689, which is 828 tokens down to 444 on o200k_base.
 // A seventh mode, orient, put back 100 of those chars, and an eighth, handoff,
 // 77 more: the hosts that reach deja only through MCP had no other way to it.
+// An eighth, inspect, put back 200: a mode line, an enum entry, and the two
+// properties an agent cannot guess — view and cursor. Its other knobs ride in
+// q or arrive undeclared, per the old per-mode names' contract.
 // The budget is set just above what that costs, because the point of it is to
 // notice growth rather than to leave room for it.
-const mcpToolsListCharBudget = 1900
+const mcpToolsListCharBudget = 
+2300
+
 
 func TestMCPToolsListStaysWithinItsTokenBudget(t *testing.T) {
 	hermeticEnv(t)

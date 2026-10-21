@@ -256,6 +256,7 @@ var commands = map[string]command{
 	"rules":    runRules,
 	"forget":   runForget,
 	"delete":   func(dir string, rest []string) error { return runDelete(dir, rest, os.Stdout) },
+	"inspect":  func(dir string, rest []string) error { return runInspect(dir, rest, os.Stdout) },
 	"mcp":      func(dir string, _ []string) error { return serveMCPProcess(dir, os.Stdin, os.Stdout) },
 	"hook-prompt": func(dir string, rest []string) error {
 		if sayIfTypedByHand("hook-prompt") {
@@ -449,6 +450,8 @@ func run(args []string) error {
 	switch args[0] {
 	case "show":
 		return cmdShow(dir, args[1:], sourceInstance)
+	case "inspect":
+		return runInspect(dir, args[1:], os.Stdout)
 	case "last":
 		return cmdLast(dir, args[1:], sourceInstance)
 	case "search":
@@ -862,6 +865,11 @@ func cmdHookContext(dir string, rest []string) error {
 }
 
 func cmdShow(dir string, rest []string, sourceInstance string) error {
+	for i := 0; i < len(rest); i++ {
+		if rest[i] == "--view" || rest[i] == "-v" || strings.HasPrefix(rest[i], "--view=") {
+			return runInspect(dir, rest, os.Stdout)
+		}
+	}
 	o, err := parseShow(rest)
 	if err != nil {
 		// The missing id is the one refusal that depends on the store: on a

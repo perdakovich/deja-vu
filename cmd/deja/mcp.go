@@ -20,6 +20,7 @@ import (
 	"github.com/vshulcz/deja-vu/internal/index"
 	"github.com/vshulcz/deja-vu/internal/model"
 	"github.com/vshulcz/deja-vu/internal/nfcfold"
+	"github.com/vshulcz/deja-vu/internal/inspect"
 	"github.com/vshulcz/deja-vu/internal/policy"
 	"github.com/vshulcz/deja-vu/internal/query"
 	"github.com/vshulcz/deja-vu/internal/search"
@@ -376,17 +377,19 @@ func dejaTool() map[string]any {
 			"- orient: the commands past sessions ran in this project and the files they worked in, before you go reading.\n" +
 			"- remember: store one settled decision for a later session.\n" +
 			"- handoff: continue another session's work. q: its id or harness.\n" +
+			"- inspect: one session in depth — q is its target; view picks the angle.\n" +
 			"A bracketed marker on a result is the user's own later judgement; act on what it says. " +
 			"When a result helps, open your reply with one line: \"déjà vu: <what> — <how you used it> (deja:<session id>)\". Say nothing about recalls that did not help.",
 		"annotations": map[string]any{"title": "This user's past sessions", "openWorldHint": false},
 		"inputSchema": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"mode":    map[string]any{"type": "string", "enum": []string{"recall", "context", "blame", "fix", "how", "orient", "remember", "handoff"}},
+				"mode":    map[string]any{"type": "string", "enum": []string{"recall", "context", "blame", "fix", "how", "orient", "remember", "handoff", "inspect"}},
 				"q":       map[string]any{"type": "string", "description": "What to ask about: the question or exact token; for blame a path, for fix the failing output verbatim, for remember the fact."},
 				"harness": map[string]any{"type": "string", "description": harnessFilterDescription()},
 				"project": map[string]any{"type": "string", "description": "Optional project filter; for remember, where it is filed."},
 				"limit":   map[string]any{"type": "number", "description": "Max results."},
+				"view":    map[string]any{"type": "string", "description": "inspect view: timeline, spine, state, lineage, resources, effects."},
 			},
 			"required": []string{"mode"},
 		},
@@ -427,6 +430,7 @@ var dispatcherModes = map[string]string{
 	"orient":         "orient",
 	"remember":       "remember",
 	"handoff":        "handoff",
+	"inspect":        "inspect",
 }
 
 // qField is the argument each mode reads its subject from. One declared `q`
@@ -448,6 +452,7 @@ var qField = map[string]string{
 	"orient":         "",
 	"remember":       "text",
 	"handoff":        "session",
+	"inspect":        "target",
 }
 
 // spreadQ copies q into the field the mode reads, unless the caller already
@@ -506,6 +511,48 @@ func callMCPToolRaw(dir, name string, raw json.RawMessage) (string, error) {
 		return callMCPTool(dir, target, spreadQ(mode, raw))
 	}
 	switch name {
+	case "inspect":
+		var a struct {
+			Target string    `json:"target"`
+			Q      string    `json:"q"`
+			View   string    `json:"view"`
+			Cursor string    `json:"cursor"`
+			Filter string    `json:"filter"`
+			Role   string    `json:"role"`
+			Tool   string    `json:"tool"`
+			Fields string    `json:"fields"`
+			Limit  mcpNumber `json:"limit"`
+		}
+		if err := decodeToolArgs(name, raw, &a); err != nil {
+			return "", err
+		}
+		target := strings.TrimSpace(a.Target)
+		if target == "" {
+			target = strings.TrimSpace(a.Q)
+		}
+		if target == "" {
+			return "", fmt.Errorf("target required")
+		}
+		resp, err := inspect.Run(dir, inspect.Options{
+			Target:     target,
+			View:       a.View,
+			Cursor:     a.Cursor,
+			Filter:     a.Filter,
+			Role:       a.Role,
+			Tool:       a.Tool,
+			Fields:     a.Fields,
+			Limit:      int(a.Limit),
+			Activation: policy.ActivationMCP,
+		})
+		if err != nil {
+			return "", err
+		}
+		b, err := json.Marshal(resp)
+		if err != nil {
+			return "", err
+		}
+		usage.RecordServedFromInto(dir, usage.KindInspect, string(b), mcpConnID(), 1, 0, []string{resp.Target.ID}, nil, policy.Load().Describe(policy.ActivationMCP))
+		return string(b), nil
 	case "recall":
 		var a struct {
 			Query   string    `json:"query"`
