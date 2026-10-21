@@ -20,6 +20,7 @@ import (
 const (
 	ActivationSearch = "search"
 	ActivationMCP    = "mcp"
+	ActivationInspect = "inspect"
 	ActivationAuto   = "auto"
 )
 
@@ -142,7 +143,7 @@ func (p Policy) Allows(activation, project string) bool {
 // permissive rule there is, because a person's own terminal is theirs. So egress
 // needs agreement: content the owner withholds on any path stays here.
 func (p Policy) AllowsEgress(project string) bool {
-	for _, a := range []string{ActivationSearch, ActivationMCP, ActivationAuto} {
+	for _, a := range []string{ActivationSearch, ActivationMCP, ActivationInspect, ActivationAuto} {
 		if !p.Allows(a, project) {
 			return false
 		}
@@ -261,7 +262,7 @@ func Diagnose() (exists bool, unknown []string, err error) {
 	// is silently doing nothing, which reads exactly like a rule that works.
 	for activation, rules := range p.Activations {
 		switch activation {
-		case ActivationSearch, ActivationMCP, ActivationAuto:
+		case ActivationSearch, ActivationMCP, ActivationInspect, ActivationAuto:
 		default:
 			unknown = append(unknown, "activation "+activation)
 			continue
