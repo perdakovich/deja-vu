@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/vshulcz/deja-vu/internal/digest"
+	"github.com/vshulcz/deja-vu/internal/embed"
 	"github.com/vshulcz/deja-vu/internal/index"
 	"github.com/vshulcz/deja-vu/internal/model"
 	"github.com/vshulcz/deja-vu/internal/nfcfold"
@@ -513,9 +514,19 @@ func callMCPToolRaw(dir, name string, raw json.RawMessage) (string, error) {
 			Project string    `json:"project"`
 			Limit   mcpNumber `json:"limit"`
 			Offset  mcpNumber `json:"offset"`
+			Cursor  string    `json:"cursor"`
 		}
 		if err := decodeToolArgs(name, raw, &a); err != nil {
 			return "", err
+		}
+		if a.Offset == 0 && a.Cursor != "" {
+			c := strings.TrimSpace(a.Cursor)
+			c = strings.TrimPrefix(c, "offset=")
+			c = strings.TrimPrefix(c, "offset:")
+			c = strings.TrimPrefix(c, "seq:")
+			if n, err := strconv.Atoi(c); err == nil && n >= 0 {
+				a.Offset = mcpNumber(n)
+			}
 		}
 		if strings.TrimSpace(a.Query) == "" {
 			return "", argErrorf("query required")
@@ -540,7 +551,14 @@ func callMCPToolRaw(dir, name string, raw json.RawMessage) (string, error) {
 		if line := manualIndexLine(dir); line != "" {
 			dated = line + "\n\n"
 		}
-		text, sessions, raw, ids, projects, err := recallTextResultIn(dir, a.Query, a.Harness, a.Project, int(a.Limit), int(a.Offset), recallMCPBudget-recallFrameOverhead-len(env)-len(dated))
+		recallBudget := recallMCPBudget
+		if int(a.Limit) > 4 {
+			recallBudget = int(a.Limit) * 1500
+			if recallBudget > 32768 {
+				recallBudget = 32768
+			}
+		}
+		text, sessions, raw, ids, projects, err := recallTextResultIn(dir, a.Query, a.Harness, a.Project, int(a.Limit), int(a.Offset), recallBudget-recallFrameOverhead-len(env)-len(dated))
 		if err == nil {
 			if strings.TrimSpace(text) == "" {
 				env = strings.TrimLeft(env, "\n")
@@ -552,8 +570,9 @@ func callMCPToolRaw(dir, name string, raw json.RawMessage) (string, error) {
 		return text, err
 	case "recall_context":
 		var a struct {
-			Query   string `json:"query"`
-			Harness string `json:"harness"`
+			Query   string    `json:"query"`
+			Harness string    `json:"harness"`
+			Limit   mcpNumber `json:"limit"`
 		}
 		if err := decodeToolArgs(name, raw, &a); err != nil {
 			return "", err
@@ -1721,6 +1740,11 @@ func recallTextResultIn(dir, q, harness, project string, limit, offset, budget i
 	// above "none about it" is worse than either alone (#2827).
 	namesTheAsked := result.Tier == search.TierRelevance && len(hits) > 0 &&
 		sessionNamesTheAsked(hits[0].Session, q, result.TermIDF)
+	if !o.NoEmbed && os.Getenv("DEJA_EMBED") != "off" {
+		if sc, err := embed.Read(dir); err == nil && embed.Stale(dir, sc) {
+			fmt.Fprintln(&b, "(note: vector sidecar was built for an earlier index — semantic search is off until deja embed runs again)")
+		}
+	}
 	if cov.Stale {
 		fmt.Fprintln(&b, "("+coverageLine(cov)+")")
 	}
